@@ -22,6 +22,7 @@ val BorderSubtleDark = Color(0x22FFFFFF)
 val TextPrimary = TextPrimaryDark
 val TextMuted = TextMutedDark
 val BorderSubtle = BorderSubtleDark
+val NeonAmber = CyberAmber
 
 // Femboy Theme (Sakura & Pastel Pink Ня)
 val FemboyBg = Color(0xFF180D15)

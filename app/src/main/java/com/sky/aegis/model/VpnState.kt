@@ -10,7 +10,8 @@ enum class ConnectionStatus {
 enum class ProtectionMode {
     DPI_BYPASS_LOCAL,   // Pure local packet fragmentation without VPS
     VPS_VLESS_TUNNEL,   // Full L3 TUN VLESS Reality tunnel
-    HYBRID_SMART        // Auto-failover: DPI Bypass for domestic, VPS for blocked
+    HYBRID_SMART,       // Auto-failover: DPI Bypass for domestic, VPS for blocked
+    PER_APP_ROUTING
 }
 
 data class TrafficStats(
