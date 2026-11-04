@@ -1,5 +1,9 @@
 package com.sky.aegis.ui.screens
 
+import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,6 +37,7 @@ fun DashboardScreen(
     onToggleVpn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val colors = LocalAegisColors.current
     val status by AegisVpnService.connectionStatus.collectAsState()
     val traffic by AegisVpnService.trafficStats.collectAsState()
@@ -47,6 +53,22 @@ fun DashboardScreen(
         ),
         label = "scale"
     )
+
+    fun openTelegramProxy() {
+        val tgUri = Uri.parse("tg://proxy?server=mtpvideo.my&port=443&secret=ee616cf892574b078aab3f73e63b8b7df4786170692e6f7a6f6e2e7275")
+        val webUri = Uri.parse("https://t.me/proxy?server=mtpvideo.my&port=443&secret=ee616cf892574b078aab3f73e63b8b7df4786170692e6f7a6f6e2e7275")
+        try {
+            val intent = Intent(Intent.ACTION_VIEW, tgUri)
+            context.startActivity(intent)
+        } catch (_: Exception) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW, webUri)
+                context.startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(context, "Клиент Telegram/Наркограм не найден", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -136,17 +158,17 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Center Pulsing Shield Button
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(230.dp)
+            modifier = Modifier.size(220.dp)
         ) {
             if (status == ConnectionStatus.CONNECTED) {
                 Box(
                     modifier = Modifier
-                        .size(220.dp)
+                        .size(210.dp)
                         .scale(pulseScale)
                         .clip(CircleShape)
                         .background(
@@ -163,7 +185,7 @@ fun DashboardScreen(
 
             Box(
                 modifier = Modifier
-                    .size(165.dp)
+                    .size(160.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -198,9 +220,9 @@ fun DashboardScreen(
                                 ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
                                 else -> colors.textMuted
                             },
-                            modifier = Modifier.size(50.dp)
+                            modifier = Modifier.size(48.dp)
                         )
-                        Spacer(modifier = Modifier.height(6.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = when (status) {
                                 ConnectionStatus.CONNECTED -> if (colors.isSakura) "АКТИВЕН 🌸" else "АКТИВЕН"
@@ -222,7 +244,7 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         // Traffic Stats Speed Row
         Row(
@@ -231,7 +253,7 @@ fun DashboardScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                .padding(14.dp),
+                .padding(12.dp),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -239,27 +261,27 @@ fun DashboardScreen(
                 Text(
                     text = "${traffic.speedKbpsIn} Kbps",
                     color = colors.primary,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
-            Box(modifier = Modifier.width(1.dp).height(30.dp).background(colors.border))
+            Box(modifier = Modifier.width(1.dp).height(28.dp).background(colors.border))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(if (colors.isSakura) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsOut} Kbps",
                     color = colors.secondary,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        // Telemetry Cards
+        // Telemetry & Direct Telegram Proxy Button
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -284,12 +306,34 @@ fun DashboardScreen(
                 pingMs = latency.discordPingMs,
                 colors = colors
             )
-            ServiceItem(
-                name = "Telegram Bridge",
-                desc = "DC1-DC5 Web/MTProto",
-                pingMs = latency.telegramPingMs,
-                colors = colors
-            )
+
+            // Telegram Proxy Interactive Card
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(14.dp))
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(text = "Telegram / Наркограм", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "MTProto Fake-TLS · ${latency.telegramPingMs ?: 24} ms", color = colors.textMuted, fontSize = 10.sp)
+                }
+
+                Button(
+                    onClick = { openTelegramProxy() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                    shape = RoundedCornerShape(10.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Включить в TG", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         }
     }
 }
@@ -307,7 +351,7 @@ private fun ServiceItem(
             .clip(RoundedCornerShape(14.dp))
             .background(colors.surface)
             .border(1.dp, colors.border, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
