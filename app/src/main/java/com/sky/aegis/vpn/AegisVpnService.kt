@@ -90,12 +90,8 @@ class AegisVpnService : VpnService() {
                 .setSession("Aegis Shield")
                 .addAddress("10.10.10.10", 32)
                 .addRoute("0.0.0.0", 0)
-                .addAddress("fd00::1", 128)
-                .addRoute("::", 0)
                 .addDnsServer(configManager.dnsPrimary)
                 .addDnsServer(configManager.dnsSecondary)
-                .setMtu(8500)
-                .setMetered(false)
 
             // Never route Aegis through its own VPN to avoid routing loops
             try {

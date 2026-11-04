@@ -15,32 +15,32 @@ object DpiPresets {
         DpiStrategy(
             id = "universal-mobile",
             name = "Мобильный обход (YouTube + Discord + TG)",
-            description = "Проверенный пресет для мобильных сетей РФ (МТС, Мегафон, Билайн, Т2, Wi-Fi): сплит TCP, disorder и UDP-фейки под QUIC",
-            cliArgs = "-s 1 -d 2 -a 1 -Y",
+            description = "Чистый TCP Disorder — стабильный обход YouTube 4K, Discord и зарубежных сайтов без потери пакетов",
+            cliArgs = "-s 1 -d 2",
             splitPos = 1,
             isDiscordVoiceOptimized = true
+        ),
+        DpiStrategy(
+            id = "disorder-fast",
+            name = "Disorder Fast (Split 1, Disorder 1)",
+            description = "Минимальная задержка, перестановка первых сегментов TCP",
+            cliArgs = "-s 1 -d 1",
+            splitPos = 1
         ),
         DpiStrategy(
             id = "autodesync-torst",
             name = "Auto-Desync Torst (YouTube 4K & Discord)",
             description = "Автоматический десинк torst с перестановкой TCP для стабильного видео 4K 60FPS",
-            cliArgs = "-A torst -s 1 -d 2 -a 1 -Y",
+            cliArgs = "-A torst -s 1 -d 2",
             splitPos = 1,
             isDiscordVoiceOptimized = true
         ),
         DpiStrategy(
-            id = "disorder-stream",
-            name = "Disorder2 Stream (Высокая скорость)",
-            description = "Перестановка TCP-сегментов без фейков, минимальная задержка в звонках и стримах",
-            cliArgs = "-s 1 -d 2",
+            id = "multisplit",
+            name = "MultiSplit (Сложные блокировки)",
+            description = "Множественное дробление ClientHello для обхода жестких фильтров ТСПУ",
+            cliArgs = "-s 1 -d 2 -s 3",
             splitPos = 1
-        ),
-        DpiStrategy(
-            id = "oob-aggressive",
-            name = "Агрессивный OOB (Max Desync)",
-            description = "OOB-десинк и сплит пакетов для глухих блокировок и зарубежных сайтов",
-            cliArgs = "-s 2 -o 1 -d 2 -Y",
-            splitPos = 2
         )
     )
 
