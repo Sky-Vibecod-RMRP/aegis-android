@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.sky.aegis.model.ConnectionStatus
-import com.sky.aegis.model.ProtectionMode
 import com.sky.aegis.ui.theme.*
 import com.sky.aegis.vpn.AegisVpnService
 
@@ -66,7 +65,7 @@ fun DashboardScreen(
             ) {
                 Column {
                     Text(
-                        text = if (colors.isFemboy) "AEGIS 🐾 NYA" else "AEGIS",
+                        text = if (colors.isSakura) "AEGIS 🌸 SAKURA" else "AEGIS",
                         color = colors.textPrimary,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
@@ -74,7 +73,7 @@ fun DashboardScreen(
                         letterSpacing = 2.sp
                     )
                     Text(
-                        text = if (colors.isFemboy) "Лапки на защите интернета" else "Android DPI Bypass & Route",
+                        text = if (colors.isSakura) "Лепестки на защите трафика" else "Android DPI Bypass & Route",
                         color = colors.textMuted,
                         fontSize = 11.sp
                     )
@@ -89,7 +88,7 @@ fun DashboardScreen(
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
-                        text = if (colors.isFemboy) "МУРР SMART" else "HYBRID AUTO",
+                        text = if (colors.isSakura) "SAKURA AUTO" else "PER-APP AUTO",
                         color = colors.primary,
                         fontSize = 11.sp,
                         fontFamily = FontFamily.Monospace,
@@ -100,7 +99,7 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Theme Switcher Pills (Cyber, Light, Femboy)
+            // Theme Switcher Pills (Cyber, Light, Sakura)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -204,10 +203,10 @@ fun DashboardScreen(
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = when (status) {
-                                ConnectionStatus.CONNECTED -> if (colors.isFemboy) "АКТИВЕН 🐾" else "АКТИВЕН"
+                                ConnectionStatus.CONNECTED -> if (colors.isSakura) "АКТИВЕН 🌸" else "АКТИВЕН"
                                 ConnectionStatus.CONNECTING -> "ЗАПУСК..."
                                 ConnectionStatus.ERROR -> "СБОЙ"
-                                else -> if (colors.isFemboy) "СПИТ Zzz" else "ОТКЛЮЧЕНО"
+                                else -> if (colors.isSakura) "СПИТ Zzz" else "ОТКЛЮЧЕНО"
                             },
                             color = when (status) {
                                 ConnectionStatus.CONNECTED -> colors.accent
@@ -236,7 +235,7 @@ fun DashboardScreen(
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (colors.isFemboy) "СКОРОСТЬ ВХОД" else "DOWNLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isSakura) "СКОРОСТЬ ВХОД" else "DOWNLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsIn} Kbps",
                     color = colors.primary,
@@ -247,7 +246,7 @@ fun DashboardScreen(
             }
             Box(modifier = Modifier.width(1.dp).height(30.dp).background(colors.border))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (colors.isFemboy) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isSakura) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsOut} Kbps",
                     color = colors.secondary,
@@ -266,7 +265,7 @@ fun DashboardScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = if (colors.isFemboy) "ЖИВОЙ ПИНГ СЕРВИСОВ 🌸" else "ТЕЛЕМЕТРИЯ СЕРВИСОВ",
+                text = if (colors.isSakura) "ЖИВОЙ ПИНГ СЕРВИСОВ 🌸" else "ТЕЛЕМЕТРИЯ СЕРВИСОВ",
                 color = colors.textMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,

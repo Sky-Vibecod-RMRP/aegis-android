@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.Color
 enum class AppTheme(val id: String, val displayName: String, val icon: String) {
     CYBER("cyber", "Cyber", "⚡"),
     LIGHT("light", "Light", "☀️"),
-    FEMBOY("femboy", "Femboy Ня", "🌸")
+    SAKURA("sakura", "Sakura", "🌸")
 }
 
 data class AegisColorPalette(
@@ -24,7 +24,7 @@ data class AegisColorPalette(
     val textPrimary: Color,
     val textMuted: Color,
     val border: Color,
-    val isFemboy: Boolean = false
+    val isSakura: Boolean = false
 )
 
 val LocalAegisColors = staticCompositionLocalOf {
@@ -58,7 +58,7 @@ fun AegisTheme(
             textMuted = TextMutedDark,
             border = BorderSubtleDark
         )
-        AppTheme.FEMBOY -> AegisColorPalette(
+        AppTheme.SAKURA -> AegisColorPalette(
             background = FemboyBg,
             surface = FemboyCard,
             surfaceElevated = FemboyCardElevated,
@@ -68,7 +68,7 @@ fun AegisTheme(
             textPrimary = FemboyTextPrimary,
             textMuted = FemboyTextMuted,
             border = FemboyBorder,
-            isFemboy = true
+            isSakura = true
         )
         AppTheme.LIGHT -> AegisColorPalette(
             background = LightBg,

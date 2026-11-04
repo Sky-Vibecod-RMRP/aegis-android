@@ -24,9 +24,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.FileInputStream
-import java.io.FileOutputStream
 import java.net.Socket
-import java.nio.ByteBuffer
 import java.util.concurrent.TimeUnit
 
 class AegisVpnService : VpnService() {
@@ -79,41 +77,41 @@ class AegisVpnService : VpnService() {
         try {
             val builder = Builder()
                 .setSession("Aegis Shield")
-                .addAddress("198.18.0.1", 15) // FakeIP subnet
+                .addAddress("198.18.0.1", 15)
                 .addDnsServer("1.1.1.1")
                 .addDnsServer("77.88.8.8")
+                .addRoute("0.0.0.0", 0)
                 .setMtu(1500)
 
-            // CRITICAL: Always disallow Aegis itself to prevent socket loops
-            try {
-                builder.addDisallowedApplication(packageName)
-            } catch (e: Exception) {
-                Log.w(tag, "Disallow self package error: ${e.message}")
-            }
-
-            // Exclude domestic messenger & banking apps to guarantee 100% uptime
-            val bypassPackages = listOf(
-                "org.telegram.messenger",
-                "org.telegram.plus",
-                "org.thunderdog.challegram",
-                "ru.sberbankmobile",
-                "com.idamob.tinkoff.android",
-                "ru.gosuslugi.online",
-                "ru.alfabank.mobile.android",
-                "com.yandex.browser",
-                "com.vkontakte.android"
+            // CRITICAL PER-APP ROUTING:
+            // Intercept ONLY YouTube and Discord packages.
+            // All other apps (Narkogram, Telegram, WhatsApp, Banks, Browsers) 
+            // continue using the native WiFi/LTE connection with 0% latency and no drops!
+            val targetPackages = listOf(
+                "com.google.android.youtube",
+                "com.google.android.youtube.tv",
+                "com.discord",
+                "com.discord.canary",
+                "com.discord.ptb"
             )
 
-            for (pkg in bypassPackages) {
+            var addedAny = false
+            for (pkg in targetPackages) {
                 try {
-                    builder.addDisallowedApplication(pkg)
+                    builder.addAllowedApplication(pkg)
+                    addedAny = true
+                    Log.i(tag, "Per-App route enabled for: $pkg")
                 } catch (_: Exception) {
-                    // App not installed on device, ignore safely
+                    // App not installed on device
                 }
             }
 
-            // Route default traffic
-            builder.addRoute("0.0.0.0", 0)
+            // Fallback: If neither YouTube nor Discord installed, protect only Aegis itself to avoid blackholing device
+            if (!addedAny) {
+                try {
+                    builder.addDisallowedApplication(packageName)
+                } catch (_: Exception) {}
+            }
 
             vpnInterface = builder.establish()
             if (vpnInterface != null) {
@@ -121,11 +119,11 @@ class AegisVpnService : VpnService() {
                 dpiEngine = DpiBypassEngine(DpiPresets.ALL.first())
                 dpiEngine?.start()
 
-                updateNotification("Защита активна · YouTube 4K & Discord Bypass")
+                updateNotification("Aegis Активен · Защита YouTube 4K & Discord")
                 startPacketForwarder(vpnInterface!!)
                 startTelemetryJob()
                 startTrafficMonitoring()
-                Log.i(tag, "Aegis TUN Interface established successfully without blocking messenger traffic")
+                Log.i(tag, "Aegis Per-App TUN Interface established successfully")
             } else {
                 _connectionStatus.value = ConnectionStatus.ERROR
                 stopSelf()
@@ -137,28 +135,18 @@ class AegisVpnService : VpnService() {
         }
     }
 
-    /**
-     * Non-blocking TUN packet reader to drain buffers and prevent kernel socket hang.
-     */
     private fun startPacketForwarder(pfd: ParcelFileDescriptor) {
         isPacketLoopRunning = true
         serviceScope.launch {
             val inputStream = FileInputStream(pfd.fileDescriptor)
             val buffer = ByteArray(32768)
-            var totalBytes = 0L
-
             while (isActive && isPacketLoopRunning && _connectionStatus.value == ConnectionStatus.CONNECTED) {
                 try {
                     val bytesRead = inputStream.read(buffer)
-                    if (bytesRead > 0) {
-                        totalBytes += bytesRead
-                    } else {
+                    if (bytesRead <= 0) {
                         delay(20)
                     }
-                } catch (e: Exception) {
-                    if (isPacketLoopRunning) {
-                        Log.d(tag, "TUN read pump completed")
-                    }
+                } catch (_: Exception) {
                     break
                 }
             }
@@ -210,7 +198,6 @@ class AegisVpnService : VpnService() {
     }
 
     private fun startTelemetryJob() {
-        // Build OkHttpClient whose sockets bypass the VPN interface via protect()
         val client = OkHttpClient.Builder()
             .socketFactory(ProtectedSocketFactory(this))
             .connectTimeout(3, TimeUnit.SECONDS)
@@ -295,10 +282,6 @@ class AegisVpnService : VpnService() {
     }
 }
 
-/**
- * SocketFactory that protects all outbound sockets using VpnService.protect()
- * so telemetry and bypass connections never get trapped in the TUN adapter.
- */
 class ProtectedSocketFactory(private val vpnService: VpnService) : javax.net.SocketFactory() {
     private val defaultFactory = javax.net.SocketFactory.getDefault()
 
