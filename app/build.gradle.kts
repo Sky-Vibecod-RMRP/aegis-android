@@ -27,7 +27,16 @@ android {
     signingConfigs {
         create("release") {
             val storeProp = project.findProperty("RELEASE_STORE_FILE") as? String ?: "aegis-release.jks"
-            storeFile = file(storeProp)
+            val candidates = listOf(
+                file(storeProp),
+                file("app/$storeProp"),
+                rootProject.file(storeProp),
+                rootProject.file("app/$storeProp")
+            )
+            val found = candidates.firstOrNull { it.exists() }
+            if (found != null) {
+                storeFile = found
+            }
             storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: "aegis2026pass"
             keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: "aegis"
             keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: "aegis2026pass"

@@ -198,7 +198,7 @@ fun DashboardScreen(
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Tune, contentDescription = null, tint = colors.primary, modifier = Modifier.size(14.dp))
+                        Icon(Icons.Default.Settings, contentDescription = null, tint = colors.primary, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
                             text = if (configManager.isHybridMode) "ГИБРИД" else "PER-APP",
@@ -235,7 +235,7 @@ fun DashboardScreen(
                         fontFamily = FontFamily.Monospace
                     )
                 }
-                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(16.dp))
+                Icon(Icons.Default.ArrowForward, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(16.dp))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
