@@ -2,7 +2,7 @@
 
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B-brightgreen.svg)](https://developer.android.com/)
 [![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20%7C%20Jetpack%20Compose%20%7C%20VpnService-cyan.svg)](https://kotlinlang.org/)
-[![Release](https://img.shields.io/badge/Release-v1.0.0%20APK-orange.svg)](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases/tag/v1.0.0)
+[![Release](https://img.shields.io/badge/Release-v1.0.1%20APK-orange.svg)](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases/tag/v1.0.1)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Мобильная версия **Aegis** для Android смартфонов и планшетов. Обходит замедление **YouTube в 4K**, голосовых каналов **Discord** (UDP 50000-65535) и **Telegram** прямо на устройстве.
@@ -11,11 +11,11 @@
 
 ## 📥 Скачать APK на смартфон
 
-> Прямая ссылка на установку: **[Скачать Aegis-v1.0.0.apk (15.5 МБ)](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases/download/v1.0.0/Aegis-v1.0.0.apk)**  
+> Прямая ссылка на установку: **[Скачать Aegis-v1.0.1.apk (31.0 МБ)](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases/download/v1.0.1/Aegis-v1.0.1.apk)**  
 > Все релизы доступны на странице: **[GitHub Releases](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases)**
 
 ### Быстрая установка:
-1. Перейдите по ссылке выше и скачайте файл **`Aegis-v1.0.0.apk`** прямо на телефон.
+1. Перейдите по ссылке выше и скачайте файл **`Aegis-v1.0.1.apk`** прямо на телефон.
 2. Откройте скачанный файл в шторке смартфона и подтвердите установку.
 3. Запустите Aegis, нажмите центральную кнопку щита и разрешите создание VPN-соединения во всплывающем системном окне Android.
 
