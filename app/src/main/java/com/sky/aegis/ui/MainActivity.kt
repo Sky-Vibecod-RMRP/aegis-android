@@ -1,6 +1,7 @@
 package com.sky.aegis.ui
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.net.VpnService
 import android.os.Build
@@ -38,16 +39,23 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val prefs = getSharedPreferences("aegis_mobile_prefs", Context.MODE_PRIVATE)
+        val savedThemeId = prefs.getString("aegis_theme", "cyber") ?: "cyber"
+        val initialTheme = AppTheme.values().find { it.id == savedThemeId } ?: AppTheme.CYBER
+
         setContent {
-            AegisTheme {
+            var currentTheme by remember { mutableStateOf(initialTheme) }
+            val colors = LocalAegisColors.current
+
+            AegisTheme(theme = currentTheme) {
                 var selectedTab by remember { mutableStateOf(NavTab.DASHBOARD) }
 
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    containerColor = Obsidian950,
+                    containerColor = LocalAegisColors.current.background,
                     bottomBar = {
                         NavigationBar(
-                            containerColor = Obsidian900,
+                            containerColor = LocalAegisColors.current.surface,
                             tonalElevation = 0.dp
                         ) {
                             NavTab.values().forEach { tab ->
@@ -57,11 +65,11 @@ class MainActivity : ComponentActivity() {
                                     icon = { Icon(tab.icon, contentDescription = tab.title) },
                                     label = { Text(tab.title) },
                                     colors = NavigationBarItemDefaults.colors(
-                                        selectedIconColor = CyberCyan,
-                                        selectedTextColor = CyberCyan,
-                                        unselectedIconColor = TextMuted,
-                                        unselectedTextColor = TextMuted,
-                                        indicatorColor = Obsidian800
+                                        selectedIconColor = LocalAegisColors.current.primary,
+                                        selectedTextColor = LocalAegisColors.current.primary,
+                                        unselectedIconColor = LocalAegisColors.current.textMuted,
+                                        unselectedTextColor = LocalAegisColors.current.textMuted,
+                                        indicatorColor = LocalAegisColors.current.surfaceElevated
                                     )
                                 )
                             }
@@ -70,6 +78,11 @@ class MainActivity : ComponentActivity() {
                 ) { innerPadding ->
                     when (selectedTab) {
                         NavTab.DASHBOARD -> DashboardScreen(
+                            currentTheme = currentTheme,
+                            onThemeChange = { newTheme ->
+                                currentTheme = newTheme
+                                prefs.edit().putString("aegis_theme", newTheme.id).apply()
+                            },
                             onToggleVpn = { toggleVpn() },
                             modifier = Modifier.padding(innerPadding)
                         )

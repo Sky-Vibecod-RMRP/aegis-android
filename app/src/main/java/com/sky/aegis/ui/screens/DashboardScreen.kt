@@ -28,15 +28,16 @@ import com.sky.aegis.vpn.AegisVpnService
 
 @Composable
 fun DashboardScreen(
+    currentTheme: AppTheme,
+    onThemeChange: (AppTheme) -> Unit,
     onToggleVpn: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = LocalAegisColors.current
     val status by AegisVpnService.connectionStatus.collectAsState()
     val traffic by AegisVpnService.trafficStats.collectAsState()
     val latency by AegisVpnService.serviceLatency.collectAsState()
-    var selectedMode by remember { mutableStateOf(ProtectionMode.HYBRID_SMART) }
 
-    // Pulse animation for active shield
     val infiniteTransition = rememberInfiniteTransition(label = "shield_pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
@@ -51,74 +52,109 @@ fun DashboardScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Obsidian950)
-            .padding(horizontal = 20.dp, vertical = 16.dp),
+            .background(colors.background)
+            .padding(horizontal = 20.dp, vertical = 14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // Header
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "AEGIS",
-                    color = TextPrimary,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 2.sp
-                )
-                Text(
-                    text = "Android DPI Bypass & Route",
-                    color = TextMuted,
-                    fontSize = 11.sp
-                )
+        // Top Bar: Brand + Theme Switcher
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        text = if (colors.isFemboy) "AEGIS 🐾 NYA" else "AEGIS",
+                        color = colors.textPrimary,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace,
+                        letterSpacing = 2.sp
+                    )
+                    Text(
+                        text = if (colors.isFemboy) "Лапки на защите интернета" else "Android DPI Bypass & Route",
+                        color = colors.textMuted,
+                        fontSize = 11.sp
+                    )
+                }
+
+                // Status Badge
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(colors.surfaceElevated)
+                        .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                ) {
+                    Text(
+                        text = if (colors.isFemboy) "МУРР SMART" else "HYBRID AUTO",
+                        color = colors.primary,
+                        fontSize = 11.sp,
+                        fontFamily = FontFamily.Monospace,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
 
-            // Mode Selector Pill
-            Box(
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Theme Switcher Pills (Cyber, Light, Femboy)
+            Row(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Obsidian800)
-                    .border(1.dp, BorderSubtle, RoundedCornerShape(12.dp))
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(14.dp))
+                    .padding(4.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                Text(
-                    text = when (selectedMode) {
-                        ProtectionMode.HYBRID_SMART -> "HYBRID AUTO"
-                        ProtectionMode.DPI_BYPASS_LOCAL -> "DPI BYPASS"
-                        ProtectionMode.VPS_VLESS_TUNNEL -> "VPS VLESS"
-                    },
-                    color = CyberCyan,
-                    fontSize = 11.sp,
-                    fontFamily = FontFamily.Monospace,
-                    fontWeight = FontWeight.Bold
-                )
+                AppTheme.values().forEach { t ->
+                    val isSelected = currentTheme == t
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) colors.primary.copy(alpha = 0.2f) else Color.Transparent)
+                            .border(
+                                1.dp,
+                                if (isSelected) colors.primary else Color.Transparent,
+                                RoundedCornerShape(10.dp)
+                            )
+                            .clickable { onThemeChange(t) }
+                            .padding(vertical = 6.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "${t.icon} ${t.displayName}",
+                            color = if (isSelected) colors.primary else colors.textMuted,
+                            fontSize = 11.sp,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                        )
+                    }
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        // Center Animated Shield Button
+        // Center Pulsing Shield Button
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(240.dp)
+            modifier = Modifier.size(230.dp)
         ) {
-            // Outer Glow Ring
             if (status == ConnectionStatus.CONNECTED) {
                 Box(
                     modifier = Modifier
-                        .size(230.dp)
+                        .size(220.dp)
                         .scale(pulseScale)
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
                                 colors = listOf(
-                                    CyberCyan.copy(alpha = 0.25f),
-                                    CyberMagenta.copy(alpha = 0.10f),
+                                    colors.primary.copy(alpha = 0.30f),
+                                    colors.secondary.copy(alpha = 0.12f),
                                     Color.Transparent
                                 )
                             )
@@ -126,17 +162,16 @@ fun DashboardScreen(
                 )
             }
 
-            // Central Touch Button
             Box(
                 modifier = Modifier
-                    .size(170.dp)
+                    .size(165.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
                             colors = when (status) {
-                                ConnectionStatus.CONNECTED -> listOf(CyberCyan, CyberEmerald)
-                                ConnectionStatus.CONNECTING -> listOf(CyberAmber, Color(0xFFFF7043))
-                                else -> listOf(Obsidian800, Obsidian700)
+                                ConnectionStatus.CONNECTED -> listOf(colors.primary, colors.accent)
+                                ConnectionStatus.CONNECTING -> listOf(Color(0xFFF59E0B), Color(0xFFFF7043))
+                                else -> listOf(colors.surfaceElevated, colors.surface)
                             }
                         )
                     )
@@ -148,7 +183,7 @@ fun DashboardScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .clip(CircleShape)
-                        .background(Obsidian900),
+                        .background(colors.surface),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -160,27 +195,27 @@ fun DashboardScreen(
                             },
                             contentDescription = "Shield",
                             tint = when (status) {
-                                ConnectionStatus.CONNECTED -> CyberCyan
-                                ConnectionStatus.CONNECTING -> CyberAmber
-                                else -> TextMuted
+                                ConnectionStatus.CONNECTED -> colors.primary
+                                ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
+                                else -> colors.textMuted
                             },
-                            modifier = Modifier.size(54.dp)
+                            modifier = Modifier.size(50.dp)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         Text(
                             text = when (status) {
-                                ConnectionStatus.CONNECTED -> "АКТИВЕН"
+                                ConnectionStatus.CONNECTED -> if (colors.isFemboy) "АКТИВЕН 🐾" else "АКТИВЕН"
                                 ConnectionStatus.CONNECTING -> "ЗАПУСК..."
                                 ConnectionStatus.ERROR -> "СБОЙ"
-                                else -> "ОТКЛЮЧЕНО"
+                                else -> if (colors.isFemboy) "СПИТ Zzz" else "ОТКЛЮЧЕНО"
                             },
                             color = when (status) {
-                                ConnectionStatus.CONNECTED -> CyberEmerald
-                                ConnectionStatus.CONNECTING -> CyberAmber
-                                else -> TextMuted
+                                ConnectionStatus.CONNECTED -> colors.accent
+                                ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
+                                else -> colors.textMuted
                             },
                             fontWeight = FontWeight.Bold,
-                            fontSize = 13.sp,
+                            fontSize = 12.sp,
                             fontFamily = FontFamily.Monospace
                         )
                     }
@@ -188,34 +223,34 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        // Traffic Stats Row (Speed UP / DOWN)
+        // Traffic Stats Speed Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(16.dp))
-                .background(Obsidian900)
-                .border(1.dp, BorderSubtle, RoundedCornerShape(16.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.border, RoundedCornerShape(16.dp))
                 .padding(14.dp),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("DOWNLOAD", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isFemboy) "СКОРОСТЬ ВХОД" else "DOWNLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsIn} Kbps",
-                    color = CyberCyan,
+                    color = colors.primary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
-            Box(modifier = Modifier.width(1.dp).height(30.dp).background(BorderSubtle))
+            Box(modifier = Modifier.width(1.dp).height(30.dp).background(colors.border))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("UPLOAD", color = TextMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isFemboy) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsOut} Kbps",
-                    color = CyberMagenta,
+                    color = colors.secondary,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
@@ -223,16 +258,16 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-        // Live Service Latency Telemetry Cards
+        // Telemetry Cards
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = "ТЕЛЕМЕТРИЯ СЕРВИСОВ",
-                color = TextMuted,
+                text = if (colors.isFemboy) "ЖИВОЙ ПИНГ СЕРВИСОВ 🌸" else "ТЕЛЕМЕТРИЯ СЕРВИСОВ",
+                color = colors.textMuted,
                 fontSize = 11.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
@@ -242,19 +277,19 @@ fun DashboardScreen(
                 name = "YouTube 4K Video",
                 desc = "googlevideo.com 200 KB chunk",
                 pingMs = latency.youtubePingMs,
-                activeColor = CyberCoral
+                colors = colors
             )
             ServiceItem(
                 name = "Discord Voice UDP",
                 desc = "Voice 50000-65535 & Gateway",
                 pingMs = latency.discordPingMs,
-                activeColor = CyberCyan
+                colors = colors
             )
             ServiceItem(
                 name = "Telegram Bridge",
                 desc = "DC1-DC5 Web/MTProto",
                 pingMs = latency.telegramPingMs,
-                activeColor = Color(0xFF29B6F6)
+                colors = colors
             )
         }
     }
@@ -265,21 +300,21 @@ private fun ServiceItem(
     name: String,
     desc: String,
     pingMs: Int?,
-    activeColor: Color
+    colors: AegisColorPalette
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(14.dp))
-            .background(Obsidian900)
-            .border(1.dp, BorderSubtle, RoundedCornerShape(14.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.border, RoundedCornerShape(14.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(text = name, color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(text = desc, color = TextMuted, fontSize = 10.sp)
+            Text(text = name, color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(text = desc, color = colors.textMuted, fontSize = 10.sp)
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -287,11 +322,11 @@ private fun ServiceItem(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (pingMs != null) CyberEmerald else Color.Gray)
+                    .background(if (pingMs != null) colors.accent else Color.Gray)
             )
             Text(
                 text = if (pingMs != null) "$pingMs ms" else "---",
-                color = if (pingMs != null) CyberEmerald else TextMuted,
+                color = if (pingMs != null) colors.accent else colors.textMuted,
                 fontFamily = FontFamily.Monospace,
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
