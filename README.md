@@ -1,11 +1,18 @@
 # 🛡️ Aegis Android — Unified Anti-Censorship & DPI Bypass Control Center
 
-[![Build Aegis Android APK](https://github.com/Sky-Vibecod-RMRP/aegis-android/actions/workflows/build-apk.yml/badge.svg)](https://github.com/Sky-Vibecod-RMRP/aegis-android/actions/workflows/build-apk.yml)
 [![Platform](https://img.shields.io/badge/Platform-Android%208.0%2B-brightgreen.svg)](https://developer.android.com/)
 [![Tech Stack](https://img.shields.io/badge/Stack-Kotlin%20%7C%20Jetpack%20Compose%20%7C%20VpnService-cyan.svg)](https://kotlinlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 Мобильная версия **Aegis** для Android смартфонов и планшетов. Обходит замедление **YouTube в 4K**, голосовых каналов **Discord** (UDP 50000-65535) и **Telegram** прямо на устройстве.
+
+---
+
+## 📥 Как скачать APK на смартфон:
+
+1. Перейдите во вкладку **[Actions](https://github.com/Sky-Vibecod-RMRP/aegis-android/actions)** или **[Releases](https://github.com/Sky-Vibecod-RMRP/aegis-android/releases)**.
+2. Скачайте файл **`Aegis-Android-Debug.apk`**.
+3. Установите на телефон и разрешите создание локального VPN-подключения в один клик.
 
 ---
 
@@ -31,7 +38,6 @@
 - **Язык & UI**: Kotlin 1.9.24, Jetpack Compose, Material 3, Coroutines Flow.
 - **Сетевое ядро**: Android `VpnService` L3 Virtual TUN Adapter (`198.18.0.1/15` FakeIP).
 - **DPI Engine**: Локальный desync-процессор для фрагментации пакетов и внедрения фейковых заголовков.
-- **CI/CD**: Автоматическая сборка APK через GitHub Actions при каждом коммите.
 
 ---
 
