@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Aegis</string>
+    <string name="vpn_service_title">Aegis Bypass Protection</string>
+    <string name="vpn_service_active">Защита активна · Трафик фильтруется</string>
+    <string name="vpn_service_stop">Отключить</string>
+    <string name="tile_label">Aegis Shield</string>
+</resources>
