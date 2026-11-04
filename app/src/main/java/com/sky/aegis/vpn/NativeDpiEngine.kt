@@ -61,9 +61,8 @@ class NativeDpiEngine(private val context: Context) {
             scope.launch {
                 try {
                     val reader = BufferedReader(InputStreamReader(proc.inputStream))
-                    var line: String?
-                    while (proc.isAlive && reader.readLine().also { line = it } != null) {
-                        Log.d("Ciadpi", line ?: "")
+                    reader.forEachLine { line ->
+                        Log.d("Ciadpi", line)
                     }
                 } catch (_: Exception) {}
             }
@@ -103,9 +102,8 @@ class NativeDpiEngine(private val context: Context) {
             scope.launch {
                 try {
                     val reader = BufferedReader(InputStreamReader(proc.inputStream))
-                    var line: String?
-                    while (proc.isAlive && reader.readLine().also { line = it } != null) {
-                        Log.d("Tun2socks", line ?: "")
+                    reader.forEachLine { line ->
+                        Log.d("Tun2socks", line)
                     }
                 } catch (_: Exception) {}
             }
