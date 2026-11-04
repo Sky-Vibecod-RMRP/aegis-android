@@ -9,10 +9,11 @@ android {
 
     defaultConfig {
         applicationId = "com.sky.aegis"
+        compileSdk = 34
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -40,6 +41,8 @@ android {
             storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: "aegis2026pass"
             keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: "aegis"
             keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: "aegis2026pass"
+            enableV1Signing = true
+            enableV2Signing = true
         }
     }
 

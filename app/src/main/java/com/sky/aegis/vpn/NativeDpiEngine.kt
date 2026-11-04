@@ -74,6 +74,11 @@ class NativeDpiEngine(private val context: Context) {
 
         // Give ciadpi 150ms to bind to port 1080
         Thread.sleep(150)
+        if (ciadpiProcess?.isAlive != true) {
+            Log.e(tag, "ciadpi process exited prematurely!")
+            stop()
+            return false
+        }
 
         // 2. Clear FD_CLOEXEC so tun2socks inherits the TUN file descriptor
         val tunFd = pfd.fd
@@ -106,6 +111,13 @@ class NativeDpiEngine(private val context: Context) {
                         Log.d("Tun2socks", line)
                     }
                 } catch (_: Exception) {}
+            }
+
+            Thread.sleep(150)
+            if (tun2socksProcess?.isAlive != true) {
+                Log.e(tag, "tun2socks process exited prematurely!")
+                stop()
+                return false
             }
         } catch (e: Exception) {
             Log.e(tag, "Failed to start tun2socks", e)

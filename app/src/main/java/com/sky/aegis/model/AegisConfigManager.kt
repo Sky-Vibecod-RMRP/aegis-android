@@ -51,7 +51,7 @@ class AegisConfigManager(context: Context) {
         set(value) = prefs.edit().putStringSet(KEY_SELECTED_PACKAGES, value).apply()
 
     var activePresetId: String
-        get() = prefs.getString(KEY_ACTIVE_PRESET_ID, "multisplit-discord") ?: "multisplit-discord"
+        get() = prefs.getString(KEY_ACTIVE_PRESET_ID, "universal-mobile") ?: "universal-mobile"
         set(value) = prefs.edit().putString(KEY_ACTIVE_PRESET_ID, value).apply()
 
     var customFlags: String
@@ -59,10 +59,10 @@ class AegisConfigManager(context: Context) {
         set(value) = prefs.edit().putString(KEY_CUSTOM_FLAGS, value).apply()
 
     var dnsPrimary: String
-        get() = prefs.getString(KEY_DNS_PRIMARY, "1.1.1.1") ?: "1.1.1.1"
+        get() = prefs.getString(KEY_DNS_PRIMARY, "77.88.8.8") ?: "77.88.8.8"
         set(value) = prefs.edit().putString(KEY_DNS_PRIMARY, value).apply()
 
     var dnsSecondary: String
-        get() = prefs.getString(KEY_DNS_SECONDARY, "8.8.8.8") ?: "8.8.8.8"
+        get() = prefs.getString(KEY_DNS_SECONDARY, "94.140.14.14") ?: "94.140.14.14"
         set(value) = prefs.edit().putString(KEY_DNS_SECONDARY, value).apply()
 }

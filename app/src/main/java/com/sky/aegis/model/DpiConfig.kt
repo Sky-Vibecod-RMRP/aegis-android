@@ -13,33 +13,33 @@ data class DpiStrategy(
 object DpiPresets {
     val ALL = listOf(
         DpiStrategy(
-            id = "multisplit-discord",
-            name = "MultiSplit + Discord Voice (По умолчанию)",
-            description = "Дробление ClientHello по позициям 2 и 3, авто-десинк torst и tlsrec для Discord Voice UDP и YouTube 4K",
-            cliArgs = "-s 2 -d 3 -a torst --tlsrec 1+s",
-            splitPos = 2,
+            id = "universal-mobile",
+            name = "Мобильный обход (YouTube + Discord + TG)",
+            description = "Проверенный пресет для операторов РФ (МТС, Мегафон, Билайн, Т2, Wi-Fi): сплит TCP, disoob и сброс SACK",
+            cliArgs = "-s 1 -q 1 -Y",
+            splitPos = 1,
             isDiscordVoiceOptimized = true
         ),
         DpiStrategy(
-            id = "fakeds-sni",
-            name = "Fake Desync + Google SNI",
-            description = "Отправка поддельного TCP-пакета с заниженным TTL и валидным SNI www.google.com для отравления таблиц ТСПУ",
-            cliArgs = "-s 3 -f -1 -t 3 --fake-sni www.google.com",
-            splitPos = 3,
-            fakeSni = "www.google.com"
+            id = "autodesync-torst",
+            name = "Auto-Desync Torst (YouTube 4K & Discord)",
+            description = "Автоматический десинк torst с перестановкой TCP для стабильного видео 4K 60FPS",
+            cliArgs = "-A torst -s 1 -d 2 -Y",
+            splitPos = 1,
+            isDiscordVoiceOptimized = true
         ),
         DpiStrategy(
-            id = "disorder2-stream",
-            name = "Disorder2 High-Speed 4K",
-            description = "Перестановка сегментов TCP, оптимизированная под 4K 60FPS видеопотоки YouTube",
+            id = "disorder-stream",
+            name = "Disorder2 Stream (Высокая скорость)",
+            description = "Перестановка TCP-сегментов без фейков, минимальная задержка в звонках и стримах",
             cliArgs = "-s 1 -d 2",
             splitPos = 1
         ),
         DpiStrategy(
-            id = "aggressive-desync",
-            name = "Агрессивный обход (Max Desync)",
-            description = "Максимальный desync: OOB, заниженный TTL и перестановка пакетов",
-            cliArgs = "-s 2 -d 2 -e 1 -f -1 -t 3 -a torst",
+            id = "oob-aggressive",
+            name = "Агрессивный OOB (Max Desync)",
+            description = "OOB-десинк и сплит пакетов для глухих блокировок и зарубежных сайтов",
+            cliArgs = "-s 2 -o 1 -d 2 -Y",
             splitPos = 2
         )
     )
