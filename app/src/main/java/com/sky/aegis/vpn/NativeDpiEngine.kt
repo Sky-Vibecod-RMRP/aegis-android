@@ -2,24 +2,23 @@ package com.sky.aegis.vpn
 
 import android.content.Context
 import android.os.ParcelFileDescriptor
-import android.system.Os
-import android.system.OsConstants
 import android.util.Log
 import com.sky.aegis.model.DpiStrategy
+import io.github.dovecoteescapee.byedpi.core.ByeDpiProxy
+import io.github.dovecoteescapee.byedpi.core.TProxyService
 import kotlinx.coroutines.*
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
 
 class NativeDpiEngine(private val context: Context) {
 
     private val tag = "NativeDpiEngine"
-    private var ciadpiProcess: Process? = null
-    private var tun2socksProcess: Process? = null
+    private val byeDpiProxy = ByeDpiProxy()
+    private var proxyJob: Job? = null
+    private var isStarted = false
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     val isRunning: Boolean
-        get() = (ciadpiProcess?.isAlive == true) && (tun2socksProcess?.isAlive == true)
+        get() = isStarted
 
     fun start(
         pfd: ParcelFileDescriptor,
@@ -28,117 +27,82 @@ class NativeDpiEngine(private val context: Context) {
     ): Boolean {
         stop()
 
-        val nativeDir = File(context.applicationInfo.nativeLibraryDir)
-        val ciadpiBin = File(nativeDir, "libciadpi.so")
-        val tun2socksBin = File(nativeDir, "libtun2socks.so")
-
-        if (!ciadpiBin.exists() || !tun2socksBin.exists()) {
-            Log.e(tag, "Native binaries missing in ${nativeDir.absolutePath}")
-            return false
-        }
-
         try {
-            ciadpiBin.setExecutable(true, false)
-            tun2socksBin.setExecutable(true, false)
-        } catch (e: Exception) {
-            Log.w(tag, "Failed to set executable flags on binaries", e)
-        }
-
-        // 1. Launch ciadpi (ByeDPI SOCKS5 engine on 127.0.0.1:1080)
-        try {
-            val ciadpiArgs = mutableListOf(ciadpiBin.absolutePath, "-i", "127.0.0.1", "-p", "1080")
+            // 1. Prepare ByeDPI CLI arguments
+            val argsList = mutableListOf("ciadpi", "-i", "127.0.0.1", "-p", "1080")
             val flagsToUse = if (customFlags.isNotBlank()) customFlags else strategy.cliArgs
             flagsToUse.trim().split(Regex("\\s+")).filter { it.isNotBlank() }.forEach {
-                ciadpiArgs.add(it)
+                argsList.add(it)
             }
 
-            Log.i(tag, "Starting ciadpi: ${ciadpiArgs.joinToString(" ")}")
-            val ciadpiPb = ProcessBuilder(ciadpiArgs)
-            ciadpiPb.redirectErrorStream(true)
-            val proc = ciadpiPb.start()
-            ciadpiProcess = proc
-
-            scope.launch {
+            Log.i(tag, "Starting ByeDPI JNI with args: ${argsList.joinToString(" ")}")
+            proxyJob = scope.launch {
                 try {
-                    val reader = BufferedReader(InputStreamReader(proc.inputStream))
-                    reader.forEachLine { line ->
-                        Log.d("Ciadpi", line)
-                    }
-                } catch (_: Exception) {}
+                    val code = byeDpiProxy.startProxy(argsList.toTypedArray())
+                    Log.i(tag, "ByeDPI JNI returned code: $code")
+                } catch (e: Exception) {
+                    Log.e(tag, "ByeDPI JNI start error", e)
+                }
             }
+
+            // Give proxy 100ms to bind to 127.0.0.1:1080
+            Thread.sleep(100)
+
+            // 2. Prepare hev-socks5-tunnel yaml config
+            val tun2socksConfig = """
+            |misc:
+            |  task-stack-size: 81920
+            |socks5:
+            |  mtu: 8500
+            |  address: 127.0.0.1
+            |  port: 1080
+            |  udp: udp
+            """.trimMargin("|")
+
+            val configFile = File(context.cacheDir, "hev_tunnel.tmp")
+            configFile.writeText(tun2socksConfig)
+
+            // 3. Start TProxyService directly with TUN fd
+            Log.i(tag, "Starting TProxyService on TUN fd ${pfd.fd}")
+            TProxyService.TProxyStartService(configFile.absolutePath, pfd.fd)
+
+            isStarted = true
+            return true
         } catch (e: Exception) {
-            Log.e(tag, "Failed to start ciadpi", e)
+            Log.e(tag, "Failed to start Native DPI Engine", e)
             stop()
             return false
         }
-
-        // Give ciadpi 150ms to bind to port 1080
-        Thread.sleep(150)
-        if (ciadpiProcess?.isAlive != true) {
-            Log.e(tag, "ciadpi process exited prematurely!")
-            stop()
-            return false
-        }
-
-        // 2. Clear FD_CLOEXEC so tun2socks inherits the TUN file descriptor
-        val tunFd = pfd.fd
-        try {
-            Os.fcntlInt(pfd.fileDescriptor, OsConstants.F_SETFD, 0)
-            Log.i(tag, "Successfully cleared FD_CLOEXEC for TUN fd: $tunFd")
-        } catch (e: Exception) {
-            Log.e(tag, "Failed to clear FD_CLOEXEC on TUN fd $tunFd", e)
-        }
-
-        // 3. Launch tun2socks bridging TUN fd to local SOCKS5 proxy
-        try {
-            val tun2socksArgs = listOf(
-                tun2socksBin.absolutePath,
-                "-device", "fd://$tunFd",
-                "-proxy", "socks5://127.0.0.1:1080",
-                "-loglevel", "warning"
-            )
-
-            Log.i(tag, "Starting tun2socks: ${tun2socksArgs.joinToString(" ")}")
-            val tun2socksPb = ProcessBuilder(tun2socksArgs)
-            tun2socksPb.redirectErrorStream(true)
-            val proc = tun2socksPb.start()
-            tun2socksProcess = proc
-
-            scope.launch {
-                try {
-                    val reader = BufferedReader(InputStreamReader(proc.inputStream))
-                    reader.forEachLine { line ->
-                        Log.d("Tun2socks", line)
-                    }
-                } catch (_: Exception) {}
-            }
-
-            Thread.sleep(150)
-            if (tun2socksProcess?.isAlive != true) {
-                Log.e(tag, "tun2socks process exited prematurely!")
-                stop()
-                return false
-            }
-        } catch (e: Exception) {
-            Log.e(tag, "Failed to start tun2socks", e)
-            stop()
-            return false
-        }
-
-        return true
     }
 
     fun stop() {
+        if (!isStarted) return
+        isStarted = false
+
         try {
-            tun2socksProcess?.destroy()
-            ciadpiProcess?.destroy()
+            Log.i(tag, "Stopping TProxyService...")
+            TProxyService.TProxyStopService()
         } catch (e: Exception) {
-            Log.w(tag, "Error stopping native processes", e)
+            Log.w(tag, "Error stopping TProxyService", e)
         }
 
-        tun2socksProcess = null
-        ciadpiProcess = null
-        scope.coroutineContext.cancelChildren()
-        Log.i(tag, "Native engines terminated")
+        try {
+            val configFile = File(context.cacheDir, "hev_tunnel.tmp")
+            if (configFile.exists()) configFile.delete()
+        } catch (_: Exception) {}
+
+        try {
+            runBlocking {
+                withTimeoutOrNull(1000) {
+                    byeDpiProxy.stopProxy()
+                }
+            }
+            proxyJob?.cancel()
+            proxyJob = null
+        } catch (e: Exception) {
+            Log.w(tag, "Error stopping ByeDPI proxy", e)
+        }
+
+        Log.i(tag, "Native DPI Engine fully stopped")
     }
 }
