@@ -88,11 +88,14 @@ class AegisVpnService : VpnService() {
         try {
             val builder = Builder()
                 .setSession("Aegis Shield")
-                .addAddress("198.18.0.1", 15)
+                .addAddress("10.10.10.10", 32)
+                .addRoute("0.0.0.0", 0)
+                .addAddress("fd00::1", 128)
+                .addRoute("::", 0)
                 .addDnsServer(configManager.dnsPrimary)
                 .addDnsServer(configManager.dnsSecondary)
-                .addRoute("0.0.0.0", 0)
-                .setMtu(1500)
+                .setMtu(8500)
+                .setMetered(false)
 
             // Never route Aegis through its own VPN to avoid routing loops
             try {

@@ -15,8 +15,8 @@ object DpiPresets {
         DpiStrategy(
             id = "universal-mobile",
             name = "Мобильный обход (YouTube + Discord + TG)",
-            description = "Проверенный пресет для операторов РФ (МТС, Мегафон, Билайн, Т2, Wi-Fi): сплит TCP, disoob и сброс SACK",
-            cliArgs = "-s 1 -q 1 -Y",
+            description = "Проверенный пресет для мобильных сетей РФ (МТС, Мегафон, Билайн, Т2, Wi-Fi): сплит TCP, disorder и UDP-фейки под QUIC",
+            cliArgs = "-s 1 -d 2 -a 1 -Y",
             splitPos = 1,
             isDiscordVoiceOptimized = true
         ),
@@ -24,7 +24,7 @@ object DpiPresets {
             id = "autodesync-torst",
             name = "Auto-Desync Torst (YouTube 4K & Discord)",
             description = "Автоматический десинк torst с перестановкой TCP для стабильного видео 4K 60FPS",
-            cliArgs = "-A torst -s 1 -d 2 -Y",
+            cliArgs = "-A torst -s 1 -d 2 -a 1 -Y",
             splitPos = 1,
             isDiscordVoiceOptimized = true
         ),

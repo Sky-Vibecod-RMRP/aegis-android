@@ -50,13 +50,17 @@ class NativeDpiEngine(private val context: Context) {
 
             // 2. Prepare hev-socks5-tunnel yaml config
             val tun2socksConfig = """
+            |tunnel:
+            |  name: tun0
+            |  mtu: 8500
+            |  ipv4: 10.10.10.10
+            |  ipv6: 'fd00::1'
+            |socks5:
+            |  port: 1080
+            |  address: 127.0.0.1
+            |  udp: 'udp'
             |misc:
             |  task-stack-size: 81920
-            |socks5:
-            |  mtu: 8500
-            |  address: 127.0.0.1
-            |  port: 1080
-            |  udp: udp
             """.trimMargin("|")
 
             val configFile = File(context.cacheDir, "hev_tunnel.tmp")
