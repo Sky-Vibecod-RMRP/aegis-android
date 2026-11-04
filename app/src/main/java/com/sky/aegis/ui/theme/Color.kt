@@ -18,6 +18,11 @@ val TextPrimaryDark = Color(0xFFF0F6FC)
 val TextMutedDark = Color(0xFF8B949E)
 val BorderSubtleDark = Color(0x22FFFFFF)
 
+// Backwards compatibility aliases
+val TextPrimary = TextPrimaryDark
+val TextMuted = TextMutedDark
+val BorderSubtle = BorderSubtleDark
+
 // Femboy Theme (Sakura & Pastel Pink Ня)
 val FemboyBg = Color(0xFF180D15)
 val FemboyCard = Color(0xFF241421)
