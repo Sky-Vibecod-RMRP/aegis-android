@@ -9,8 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -26,10 +28,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.sky.aegis.model.AegisConfigManager
 import com.sky.aegis.model.ConnectionStatus
+import com.sky.aegis.model.DpiPresets
 import com.sky.aegis.ui.theme.*
 import com.sky.aegis.vpn.AegisVpnService
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     currentTheme: AppTheme,
@@ -38,10 +43,15 @@ fun DashboardScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val configManager = remember { AegisConfigManager(context) }
     val colors = LocalAegisColors.current
     val status by AegisVpnService.connectionStatus.collectAsState()
     val traffic by AegisVpnService.trafficStats.collectAsState()
     val latency by AegisVpnService.serviceLatency.collectAsState()
+
+    var showProfileDialog by remember { mutableStateOf(false) }
+    var activePresetId by remember { mutableStateOf(configManager.activePresetId) }
+    var customFlagsInput by remember { mutableStateOf(configManager.customFlags) }
 
     val infiniteTransition = rememberInfiniteTransition(label = "shield_pulse")
     val pulseScale by infiniteTransition.animateFloat(
@@ -65,9 +75,86 @@ fun DashboardScreen(
                 val intent = Intent(Intent.ACTION_VIEW, webUri)
                 context.startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(context, "Клиент Telegram/Наркограм не найден", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Клиент Telegram не найден", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    if (showProfileDialog) {
+        AlertDialog(
+            onDismissRequest = { showProfileDialog = false },
+            title = {
+                Text("ПРОФИЛЬ DPI BYPASS", color = colors.textPrimary, fontFamily = FontFamily.Monospace, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text("Выберите готовый пресет десинка или задайте свои флаги ByeDPI:", color = colors.textMuted, fontSize = 12.sp)
+
+                    DpiPresets.ALL.forEach { preset ->
+                        val isSelected = activePresetId == preset.id && customFlagsInput.isBlank()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (isSelected) colors.primary.copy(alpha = 0.15f) else colors.surface)
+                                .border(1.dp, if (isSelected) colors.primary else colors.border, RoundedCornerShape(12.dp))
+                                .clickable {
+                                    activePresetId = preset.id
+                                    customFlagsInput = ""
+                                    configManager.activePresetId = preset.id
+                                    configManager.customFlags = ""
+                                }
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(preset.name, color = colors.textPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(preset.description, color = colors.textMuted, fontSize = 11.sp)
+                                Text(preset.cliArgs, color = colors.primary, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                            }
+                            if (isSelected) {
+                                Icon(Icons.Default.Check, contentDescription = null, tint = colors.primary)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    OutlinedTextField(
+                        value = customFlagsInput,
+                        onValueChange = {
+                            customFlagsInput = it
+                            configManager.customFlags = it
+                        },
+                        label = { Text("Кастомные флаги ByeDPI (опционально)", fontSize = 11.sp) },
+                        placeholder = { Text("-s 2 -d 3 -a torst", fontSize = 11.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            containerColor = colors.surface,
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = colors.border,
+                            focusedTextColor = colors.textPrimary,
+                            unfocusedTextColor = colors.textPrimary
+                        )
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showProfileDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
+                ) {
+                    Text("Применить", color = colors.background, fontWeight = FontWeight.Bold)
+                }
+            },
+            containerColor = colors.surfaceElevated
+        )
     }
 
     Column(
@@ -95,31 +182,63 @@ fun DashboardScreen(
                         letterSpacing = 2.sp
                     )
                     Text(
-                        text = if (colors.isSakura) "Лепестки на защите трафика" else "Android DPI Bypass & Route",
+                        text = if (colors.isSakura) "Лепестки на защите трафика" else "Android Native DPI Engine (ciadpi)",
                         color = colors.textMuted,
                         fontSize = 11.sp
                     )
                 }
 
-                // Status Badge
+                // Strategy Pill
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
                         .background(colors.surfaceElevated)
                         .border(1.dp, colors.border, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 10.dp, vertical = 5.dp)
+                        .clickable { showProfileDialog = true }
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
                 ) {
-                    Text(
-                        text = if (colors.isSakura) "SAKURA AUTO" else "PER-APP AUTO",
-                        color = colors.primary,
-                        fontSize = 11.sp,
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Tune, contentDescription = null, tint = colors.primary, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (configManager.isHybridMode) "ГИБРИД" else "PER-APP",
+                            color = colors.primary,
+                            fontSize = 11.sp,
+                            fontFamily = FontFamily.Monospace,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Active Preset Quick Info Bar
+            val currentPreset = DpiPresets.findById(activePresetId)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+                    .clickable { showProfileDialog = true }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("ПРОФИЛЬ: ${currentPreset.name}", color = colors.textPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        if (customFlagsInput.isNotBlank()) "Кастом: $customFlagsInput" else currentPreset.cliArgs,
+                        color = colors.primary,
+                        fontSize = 10.sp,
+                        fontFamily = FontFamily.Monospace
+                    )
+                }
+                Icon(Icons.Default.ChevronRight, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(16.dp))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Theme Switcher Pills (Cyber, Light, Sakura)
             Row(
@@ -144,7 +263,7 @@ fun DashboardScreen(
                                 RoundedCornerShape(10.dp)
                             )
                             .clickable { onThemeChange(t) }
-                            .padding(vertical = 6.dp),
+                            .padding(vertical = 5.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -158,17 +277,17 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Center Pulsing Shield Button
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier.size(220.dp)
+            modifier = Modifier.size(200.dp)
         ) {
             if (status == ConnectionStatus.CONNECTED) {
                 Box(
                     modifier = Modifier
-                        .size(210.dp)
+                        .size(190.dp)
                         .scale(pulseScale)
                         .clip(CircleShape)
                         .background(
@@ -185,7 +304,7 @@ fun DashboardScreen(
 
             Box(
                 modifier = Modifier
-                    .size(160.dp)
+                    .size(150.dp)
                     .clip(CircleShape)
                     .background(
                         Brush.linearGradient(
@@ -220,9 +339,9 @@ fun DashboardScreen(
                                 ConnectionStatus.CONNECTING -> Color(0xFFF59E0B)
                                 else -> colors.textMuted
                             },
-                            modifier = Modifier.size(48.dp)
+                            modifier = Modifier.size(44.dp)
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(3.dp))
                         Text(
                             text = when (status) {
                                 ConnectionStatus.CONNECTED -> if (colors.isSakura) "АКТИВЕН 🌸" else "АКТИВЕН"
@@ -236,7 +355,7 @@ fun DashboardScreen(
                                 else -> colors.textMuted
                             },
                             fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp,
+                            fontSize = 11.sp,
                             fontFamily = FontFamily.Monospace
                         )
                     }
@@ -244,7 +363,7 @@ fun DashboardScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Traffic Stats Speed Row
         Row(
@@ -253,43 +372,43 @@ fun DashboardScreen(
                 .clip(RoundedCornerShape(16.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.border, RoundedCornerShape(16.dp))
-                .padding(12.dp),
+                .padding(10.dp),
             horizontalArrangement = Arrangement.SpaceAround
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (colors.isSakura) "СКОРОСТЬ ВХОД" else "DOWNLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isSakura) "СКОРОСТЬ ВХОД" else "DOWNLOAD", color = colors.textMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsIn} Kbps",
                     color = colors.primary,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
-            Box(modifier = Modifier.width(1.dp).height(28.dp).background(colors.border))
+            Box(modifier = Modifier.width(1.dp).height(24.dp).background(colors.border))
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(if (colors.isSakura) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 10.sp, fontFamily = FontFamily.Monospace)
+                Text(if (colors.isSakura) "СКОРОСТЬ ИСХОД" else "UPLOAD", color = colors.textMuted, fontSize = 9.sp, fontFamily = FontFamily.Monospace)
                 Text(
                     text = "${traffic.speedKbpsOut} Kbps",
                     color = colors.secondary,
-                    fontSize = 15.sp,
+                    fontSize = 14.sp,
                     fontWeight = FontWeight.Bold,
                     fontFamily = FontFamily.Monospace
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         // Telemetry & Direct Telegram Proxy Button
         Column(
             modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = if (colors.isSakura) "ЖИВОЙ ПИНГ СЕРВИСОВ 🌸" else "ТЕЛЕМЕТРИЯ СЕРВИСОВ",
                 color = colors.textMuted,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace
             )
@@ -314,12 +433,12 @@ fun DashboardScreen(
                     .clip(RoundedCornerShape(14.dp))
                     .background(colors.surface)
                     .border(1.dp, colors.border, RoundedCornerShape(14.dp))
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(text = "Telegram / Наркограм", color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    Text(text = "Telegram / Наркограм", color = colors.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     Text(text = "MTProto Fake-TLS · ${latency.telegramPingMs ?: 24} ms", color = colors.textMuted, fontSize = 10.sp)
                 }
 
@@ -329,7 +448,7 @@ fun DashboardScreen(
                     shape = RoundedCornerShape(10.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                 ) {
-                    Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Включить в TG", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
@@ -348,30 +467,31 @@ private fun ServiceItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(12.dp))
             .background(colors.surface)
-            .border(1.dp, colors.border, RoundedCornerShape(14.dp))
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+            .border(1.dp, colors.border, RoundedCornerShape(12.dp))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(text = name, color = colors.textPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-            Text(text = desc, color = colors.textMuted, fontSize = 10.sp)
+            Text(name, color = colors.textPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(desc, color = colors.textMuted, fontSize = 10.sp)
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(CircleShape)
-                    .background(if (pingMs != null) colors.accent else Color.Gray)
+                    .background(if (pingMs != null && pingMs < 120) colors.primary else Color(0xFFF59E0B))
             )
+            Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = if (pingMs != null) "$pingMs ms" else "---",
-                color = if (pingMs != null) colors.accent else colors.textMuted,
+                text = if (pingMs != null) "$pingMs ms" else "-- ms",
+                color = colors.textPrimary,
+                fontSize = 11.sp,
                 fontFamily = FontFamily.Monospace,
-                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold
             )
         }

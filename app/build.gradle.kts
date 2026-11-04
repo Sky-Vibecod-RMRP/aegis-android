@@ -18,11 +18,26 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        ndk {
+            abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64")
+        }
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeProp = project.findProperty("RELEASE_STORE_FILE") as? String ?: "aegis-release.jks"
+            storeFile = file(storeProp)
+            storePassword = project.findProperty("RELEASE_STORE_PASSWORD") as? String ?: "aegis2026pass"
+            keyAlias = project.findProperty("RELEASE_KEY_ALIAS") as? String ?: "aegis"
+            keyPassword = project.findProperty("RELEASE_KEY_PASSWORD") as? String ?: "aegis2026pass"
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -30,6 +45,7 @@ android {
         }
         debug {
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -53,6 +69,9 @@ android {
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+        jniLibs {
+            useLegacyPackaging = true
         }
     }
 }

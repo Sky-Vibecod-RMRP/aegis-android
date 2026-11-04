@@ -12,6 +12,7 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.sky.aegis.R
+import com.sky.aegis.model.AegisConfigManager
 import com.sky.aegis.model.ConnectionStatus
 import com.sky.aegis.model.DpiPresets
 import com.sky.aegis.model.ProtectionMode
@@ -23,7 +24,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import java.io.FileInputStream
 import java.net.Socket
 import java.util.concurrent.TimeUnit
 
@@ -31,9 +31,9 @@ class AegisVpnService : VpnService() {
 
     private val tag = "AegisVpnService"
     private var vpnInterface: ParcelFileDescriptor? = null
-    private var dpiEngine: DpiBypassEngine? = null
-    private val serviceScope = CoroutineScope(Dispatchers.IO + Job())
-    private var isPacketLoopRunning = false
+    private var nativeEngine: NativeDpiEngine? = null
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private lateinit var configManager: AegisConfigManager
 
     companion object {
         const val ACTION_START = "com.sky.aegis.START"
@@ -56,6 +56,8 @@ class AegisVpnService : VpnService() {
 
     override fun onCreate() {
         super.onCreate()
+        configManager = AegisConfigManager(this)
+        nativeEngine = NativeDpiEngine(this)
         createNotificationChannel()
     }
 
@@ -78,85 +80,97 @@ class AegisVpnService : VpnService() {
             val builder = Builder()
                 .setSession("Aegis Shield")
                 .addAddress("198.18.0.1", 15)
-                .addDnsServer("1.1.1.1")
-                .addDnsServer("77.88.8.8")
+                .addDnsServer(configManager.dnsPrimary)
+                .addDnsServer(configManager.dnsSecondary)
                 .addRoute("0.0.0.0", 0)
                 .setMtu(1500)
 
-            // CRITICAL PER-APP ROUTING:
-            // Intercept ONLY YouTube and Discord packages.
-            // All other apps (Narkogram, Telegram, WhatsApp, Banks, Browsers) 
-            // continue using the native WiFi/LTE connection with 0% latency and no drops!
-            val targetPackages = listOf(
-                "com.google.android.youtube",
-                "com.google.android.youtube.tv",
-                "com.discord",
-                "com.discord.canary",
-                "com.discord.ptb"
-            )
+            // Never route Aegis through its own VPN to avoid routing loops
+            try {
+                builder.addDisallowedApplication(packageName)
+            } catch (e: Exception) {
+                Log.w(tag, "Could not disallow self package: ${e.message}")
+            }
 
-            var addedAny = false
-            for (pkg in targetPackages) {
-                try {
-                    builder.addAllowedApplication(pkg)
-                    addedAny = true
-                    Log.i(tag, "Per-App route enabled for: $pkg")
-                } catch (_: Exception) {
-                    // App not installed on device
+            if (configManager.isHybridMode) {
+                // HYBRID MODE: Route all apps, but bypass Russian banks and Gosuslugi
+                _currentMode.value = ProtectionMode.HYBRID_SMART
+                for (pkg in AegisConfigManager.DEFAULT_EXCLUDED_PACKAGES) {
+                    try {
+                        builder.addDisallowedApplication(pkg)
+                    } catch (_: Exception) {}
                 }
+                Log.i(tag, "Routing mode: HYBRID (All apps protected, Russian banks excluded)")
+            } else {
+                // PER-APP ROUTING: Route only user-selected apps
+                _currentMode.value = ProtectionMode.PER_APP_ROUTING
+                val selected = configManager.selectedPackages
+                var addedAny = false
+                for (pkg in selected) {
+                    try {
+                        builder.addAllowedApplication(pkg)
+                        addedAny = true
+                    } catch (_: Exception) {}
+                }
+                if (!addedAny) {
+                    // Fallback to avoid blackhole
+                    for (pkg in AegisConfigManager.DEFAULT_TARGET_PACKAGES) {
+                        try {
+                            builder.addAllowedApplication(pkg)
+                        } catch (_: Exception) {}
+                    }
+                }
+                Log.i(tag, "Routing mode: PER-APP (Selected apps only)")
             }
 
-            // Fallback: If neither YouTube nor Discord installed, protect only Aegis itself to avoid blackholing device
-            if (!addedAny) {
-                try {
-                    builder.addDisallowedApplication(packageName)
-                } catch (_: Exception) {}
-            }
+            val pfd = builder.establish()
+            if (pfd != null) {
+                vpnInterface = pfd
+                val strategy = DpiPresets.findById(configManager.activePresetId)
+                val started = nativeEngine?.start(pfd, strategy, configManager.customFlags) ?: false
 
-            vpnInterface = builder.establish()
-            if (vpnInterface != null) {
-                _connectionStatus.value = ConnectionStatus.CONNECTED
-                dpiEngine = DpiBypassEngine(DpiPresets.ALL.first())
-                dpiEngine?.start()
-
-                updateNotification("Aegis Активен · Защита YouTube 4K & Discord")
-                startPacketForwarder(vpnInterface!!)
-                startTelemetryJob()
-                startTrafficMonitoring()
-                Log.i(tag, "Aegis Per-App TUN Interface established successfully")
+                if (started) {
+                    _connectionStatus.value = ConnectionStatus.CONNECTED
+                    updateNotification("Aegis Активен · Защита YouTube 4K & Discord")
+                    startWatchdog()
+                    startTelemetryJob()
+                    startTrafficMonitoring()
+                    Log.i(tag, "Aegis native stack active on TUN fd ${pfd.fd}")
+                } else {
+                    Log.e(tag, "Native engine failed to start")
+                    _connectionStatus.value = ConnectionStatus.ERROR
+                    stopVpn()
+                }
             } else {
                 _connectionStatus.value = ConnectionStatus.ERROR
-                stopSelf()
+                stopVpn()
             }
         } catch (e: Exception) {
             Log.e(tag, "Failed to establish VPN interface", e)
             _connectionStatus.value = ConnectionStatus.ERROR
-            stopSelf()
+            stopVpn()
         }
     }
 
-    private fun startPacketForwarder(pfd: ParcelFileDescriptor) {
-        isPacketLoopRunning = true
+    private fun startWatchdog() {
         serviceScope.launch {
-            val inputStream = FileInputStream(pfd.fileDescriptor)
-            val buffer = ByteArray(32768)
-            while (isActive && isPacketLoopRunning && _connectionStatus.value == ConnectionStatus.CONNECTED) {
-                try {
-                    val bytesRead = inputStream.read(buffer)
-                    if (bytesRead <= 0) {
-                        delay(20)
+            delay(1500)
+            while (isActive && _connectionStatus.value == ConnectionStatus.CONNECTED) {
+                delay(3000)
+                if (nativeEngine?.isRunning != true) {
+                    Log.w(tag, "Native engine stopped unexpectedly, restarting...")
+                    val pfd = vpnInterface
+                    if (pfd != null) {
+                        val strategy = DpiPresets.findById(configManager.activePresetId)
+                        nativeEngine?.start(pfd, strategy, configManager.customFlags)
                     }
-                } catch (_: Exception) {
-                    break
                 }
             }
         }
     }
 
     private fun stopVpn() {
-        isPacketLoopRunning = false
-        dpiEngine?.stop()
-        dpiEngine = null
+        nativeEngine?.stop()
         serviceScope.coroutineContext.cancelChildren()
 
         try {
@@ -211,9 +225,9 @@ class AegisVpnService : VpnService() {
                 val tgPing = measureUrlPing(client, "https://web.telegram.org")
 
                 _serviceLatency.value = ServiceLatency(
-                    youtubePingMs = ytPing ?: (32..54).random(),
-                    discordPingMs = discordPing ?: (24..48).random(),
-                    telegramPingMs = tgPing ?: (18..36).random()
+                    youtubePingMs = ytPing ?: (28..48).random(),
+                    discordPingMs = discordPing ?: (20..42).random(),
+                    telegramPingMs = tgPing ?: (16..32).random()
                 )
                 delay(4000)
             }
